@@ -29,7 +29,7 @@ put_yo: bool = True
 speaker: str = 'xenia'
 sample_rate: int = 48000  # Hz - 48000, 24000 or 8000
 torch_device: str = 'cpu'
-torch_num_threads: int = 12  # Only effective for torch_device = 'cpu'
+torch_num_threads: int = 6  # Only effective for torch_device = 'cpu' - use 4-6 threads, larger count may slow down TTS
 line_length_limit: int = 1000  # Max text length for model - not more than 1000 for v3_1 model!
 wave_file_size_limit: int = 512 * 1024 * 1024  # 512 MiB - not more than 4GiB!
 # 512 MiB ~= 1h 33m per file @48000, ~= 3h 6m per file @24000, ~= 9h 19m per file  @8000
