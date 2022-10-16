@@ -30,7 +30,7 @@ speaker: str = 'xenia'
 sample_rate: int = 48000  # Hz - 48000, 24000 or 8000
 torch_device: str = 'cpu'
 torch_num_threads: int = 6  # Only effective for torch_device = 'cpu' - use 4-6 threads, larger count may slow down TTS
-line_length_limit: int = 1000  # Max text length for model - not more than 1000 for v3_1 model!
+line_length_limit: int = 990  # Max text length for model - not more than 990 chars for v3_1_ru model!
 wave_file_size_limit: int = 512 * 1024 * 1024  # 512 MiB - not more than 4GiB!
 # 512 MiB ~= 1h 33m per file @48000, ~= 3h 6m per file @24000, ~= 9h 19m per file  @8000
 # Exact formula:
@@ -46,7 +46,7 @@ def main():
     print("main()")
     input_filename = process_args()
     origin_lines = load_file(input_filename)
-    preprocessed_lines, preprocessed_text_len = preprocess_text(origin_lines)
+    preprocessed_lines, preprocessed_text_len = preprocess_text(origin_lines, line_length_limit)
     del origin_lines
     write_lines(input_filename + '_preprocessed.txt', preprocessed_lines)
     # exit(0)
@@ -90,9 +90,9 @@ def find_max_char_position(positions: list, limit: int) -> int:
     return max_position
 
 
-def find_split_position(line: str, old_position: int, char: str) -> int:
-    dots_positions: list = find_char_positions(line, char)
-    new_position: int = find_max_char_position(dots_positions, line_length_limit)
+def find_split_position(line: str, old_position: int, char: str, limit: int) -> int:
+    positions: list = find_char_positions(line, char)
+    new_position: int = find_max_char_position(positions, limit)
     position: int = max(new_position, old_position)
     return position
 
@@ -106,11 +106,19 @@ def spell_digits(line) -> str:
     return line
 
 
-def preprocess_text(lines: list) -> (list, int):
+def preprocess_text(lines: list, length_limit: int) -> (list, int):
     print("Preprocessing text")
+
+    if length_limit > 3:
+        length_limit = length_limit - 2  # Keep a room for trailing char and '\n' char
+    else:
+        print(F"ERROR: line length limit must be >= 3, got {length_limit}")
+        exit(1)
+
     preprocessed_text_len: int = 0
     preprocessed_lines: list = []
     for line in lines:
+        line = line.strip()  # Remove leading/trailing spaces
         if line == '\n' or line == '':
             continue
         line = line.replace("…", "...")  # Model does not handle "…"
@@ -118,22 +126,32 @@ def preprocess_text(lines: list) -> (list, int):
 
         # print("Processing line: " + line)
         while len(line) > 0:
-            # V3_1 model does not handle long lines (over 1000 chars)
-            if len(line) < line_length_limit - 1:  # Keep a room for trailing char!
+            # v3_1_ru model does not handle long lines (over 990 chars)
+            if len(line) < length_limit:
                 # print("adding line: " + line)
                 preprocessed_lines.append(line)
                 preprocessed_text_len += len(line)
                 break
             # Find position to split line between sentences
             split_position: int = 0
-            split_position = find_split_position(line, split_position, ".")
-            split_position = find_split_position(line, split_position, "!")
-            split_position = find_split_position(line, split_position, "?")
+            split_position = find_split_position(line, split_position, ".", length_limit)
+            split_position = find_split_position(line, split_position, "!", length_limit)
+            split_position = find_split_position(line, split_position, "?", length_limit)
 
+            # If no punctuation found - try to split on space
+            if split_position == 0:
+                split_position = find_split_position(line, split_position, " ", length_limit)
+
+            # If no punctuation found - force split at limit
+            if split_position == 0:
+                split_position = length_limit
+
+            # Keep trailing char, add newline
             part: str = line[0:split_position + 1] + "\n"
             # print(F'Line too long - splitting at position {split_position}:  {line}')
             preprocessed_lines.append(part)
             preprocessed_text_len += len(part)
+            # Skip trailing char from previous part
             line = line[split_position + 1:]
             # print ("Rest of line: " + line)
     return preprocessed_lines, preprocessed_text_len
