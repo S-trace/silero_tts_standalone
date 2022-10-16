@@ -30,7 +30,14 @@ speaker: str = 'xenia'
 sample_rate: int = 48000  # Hz - 48000, 24000 or 8000
 torch_device: str = 'cpu'
 torch_num_threads: int = 6  # Only effective for torch_device = 'cpu' - use 4-6 threads, larger count may slow down TTS
-line_length_limit: int = 990  # Max text length for model - not more than 990 chars for v3_1_ru model!
+line_length_limits: dict = {
+    'aidar': 882,
+    'baya': 860,
+    'eugene': 1000,
+    'kseniya': 895,
+    'xenia': 941,
+    'random': 355,
+}
 wave_file_size_limit: int = 512 * 1024 * 1024  # 512 MiB - not more than 4GiB!
 # 512 MiB ~= 1h 33m per file @48000, ~= 3h 6m per file @24000, ~= 9h 19m per file  @8000
 # Exact formula:
@@ -46,13 +53,43 @@ def main():
     print("main()")
     input_filename = process_args()
     origin_lines = load_file(input_filename)
+    line_length_limit: int = line_length_limits[speaker]  # Max text length for speaker
+    # del origin_lines
     preprocessed_lines, preprocessed_text_len = preprocess_text(origin_lines, line_length_limit)
-    del origin_lines
     write_lines(input_filename + '_preprocessed.txt', preprocessed_lines)
     # exit(0)
     download_model()
     tts_model = init_model(torch_device, torch_num_threads)
+    find_max_line_length_all(input_filename, origin_lines)
+    exit(0)
     process_tts(tts_model, preprocessed_lines, input_filename, wave_file_size_limit, preprocessed_text_len)
+
+
+def find_max_line_length_all(filename: str, lines: list):
+    global speaker
+    for speaker in line_length_limits.keys():
+        find_max_line_length(filename, language, speaker, lines)
+
+
+def find_max_line_length(filename: str, tts_language: str, tts_speaker: str, lines: list):
+    new_length_limit: int = line_length_limits[tts_speaker]
+    # preprocessed_lines, preprocessed_text_len = preprocess_text(origin_lines, line_length_limit)
+    tts_model = init_model(torch_device, torch_num_threads)
+    print(f"Processing {tts_language}/{tts_speaker}")
+    while True:
+        try:
+            print(f'Trying TTS with speaker {tts_speaker} and line_length_limit={new_length_limit}')
+            preprocessed_lines, preprocessed_text_len = preprocess_text(lines, new_length_limit)
+            process_tts(tts_model, preprocessed_lines, f"{filename}_{tts_speaker}", wave_file_size_limit,
+                        preprocessed_text_len)
+            break
+        except Exception as exception:
+            print(
+                f'TTS failed with speaker {tts_speaker} and line_length_limit={new_length_limit} '
+                f'with {type(exception)} exception: \n{exception}')
+            new_length_limit -= 1
+            print(f'Retrying with speaker {tts_speaker} and line_length_limit={new_length_limit}')
+    print(F"Found limit: {tts_speaker} have line_length_limit={new_length_limit}")
 
 
 def process_args() -> str:
@@ -107,7 +144,7 @@ def spell_digits(line) -> str:
 
 
 def preprocess_text(lines: list, length_limit: int) -> (list, int):
-    print("Preprocessing text")
+    print(f"Preprocessing text with line length limit={length_limit}")
 
     if length_limit > 3:
         length_limit = length_limit - 2  # Keep a room for trailing char and '\n' char
