@@ -59,9 +59,9 @@ def main():
     write_lines(input_filename + '_preprocessed.txt', preprocessed_lines)
     # exit(0)
     download_model()
-    tts_model = init_model(torch_device, torch_num_threads)
     find_max_line_length_all(input_filename, origin_lines)
     exit(0)
+    tts_model: torch.nn.Module = init_model(torch_device, torch_num_threads)
     process_tts(tts_model, preprocessed_lines, input_filename, wave_file_size_limit, preprocessed_text_len)
 
 
@@ -221,9 +221,9 @@ def download_model():
     # print_model_information()
 
 
-def init_model(device: str, threads_count: int):
+def init_model(device: str, threads_count: int) -> torch.nn.Module:
     print("Initialising model")
-    device = torch.device(device)
+    device: torch.device = torch.device(device)
     torch.set_num_threads(threads_count)
     tts_model, tts_sample_text = torch.hub.load(repo_or_dir='snakers4/silero-models',
                                                 model='silero_tts',
@@ -307,7 +307,8 @@ def write_wave_chunk(wf, audio, audio_size: int, filename: str, wave_data_limit:
 
 
 # Process TTS for preprocessed_lines
-def process_tts(tts_model, lines: list, output_filename: str, wave_data_limit: int, preprocessed_text_len: int):
+def process_tts(tts_model: torch.nn.Module, lines: list, output_filename: str, wave_data_limit: int,
+                preprocessed_text_len: int):
     print("Starting TTS")
     s = Stats(preprocessed_text_len)
     current_line: int = 0
