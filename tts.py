@@ -20,6 +20,7 @@ import wave
 import sys
 from datetime import datetime, timedelta
 from num2t4ru import num2text
+from omegaconf import OmegaConf
 
 # Configurable parameters:
 model_id: str = 'v3_1_ru'
@@ -58,10 +59,12 @@ def main():
     preprocessed_lines, preprocessed_text_len = preprocess_text(origin_lines, line_length_limit)
     write_lines(input_filename + '_preprocessed.txt', preprocessed_lines)
     # exit(0)
-    download_model()
-    find_max_line_length_all(input_filename, origin_lines)
-    exit(0)
+    download_models_config()
+    print_models_information()
+    # find_max_line_length_all(input_filename, origin_lines)
+    # exit(0)
     tts_model: torch.nn.Module = init_model(torch_device, torch_num_threads)
+    print(f'Available speakers: {tts_model.speakers}')
     process_tts(tts_model, preprocessed_lines, input_filename, wave_file_size_limit, preprocessed_text_len)
 
 
@@ -74,7 +77,7 @@ def find_max_line_length_all(filename: str, lines: list):
 def find_max_line_length(filename: str, tts_language: str, tts_speaker: str, lines: list):
     new_length_limit: int = line_length_limits[tts_speaker]
     # preprocessed_lines, preprocessed_text_len = preprocess_text(origin_lines, line_length_limit)
-    tts_model = init_model(torch_device, torch_num_threads)
+    tts_model: torch.nn.Module = init_model(torch_device, torch_num_threads)  # Reinitialize model after speaker change
     print(f"Processing {tts_language}/{tts_speaker}")
     while True:
         try:
@@ -204,21 +207,20 @@ def write_lines(filename: str, lines: list):
         f.close()
 
 
-# from omegaconf import OmegaConf
-# def print_model_information():
-#     models = OmegaConf.load('latest_silero_models.yml')
-#     available_languages = list(models.tts_models.keys())
-#     print(f'Available languages {available_languages}')
-#     for lang in available_languages:
-#         speakers = list(models.tts_models.get(lang).keys())
-#         print(f'Available speakers for {lang}: {speakers}')
+def print_models_information():
+    config = OmegaConf.load('latest_silero_models.yml')
+    available_languages = list(config.tts_models.keys())
+    print(f'Available languages {available_languages}')
+    for lang in available_languages:
+        models: list = list(config.tts_models.get(lang).keys())
+        print(f'Available models for {lang}: {models}')
 
-def download_model():
-    print("Downloading model")
+
+def download_models_config():
+    print("Downloading models config")
     torch.hub.download_url_to_file('https://raw.githubusercontent.com/snakers4/silero-models/master/models.yml',
                                    'latest_silero_models.yml',
                                    progress=False)
-    # print_model_information()
 
 
 def init_model(device: str, threads_count: int) -> torch.nn.Module:
