@@ -172,6 +172,7 @@ def preprocess_text(lines: list, length_limit: int) -> (list, int):
             # v3_1_ru model does not handle long lines (over 990 chars)
             if len(line) < length_limit:
                 # print("adding line: " + line)
+                line = line + "\n"
                 preprocessed_lines.append(line)
                 preprocessed_text_len += len(line)
                 break
