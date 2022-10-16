@@ -121,7 +121,10 @@ def preprocess_text(lines: list, length_limit: int) -> (list, int):
         line = line.strip()  # Remove leading/trailing spaces
         if line == '\n' or line == '':
             continue
+
+        # Replace chars not supported by model
         line = line.replace("…", "...")  # Model does not handle "…"
+        line = line.replace("*", " звёздочка ")
         line = spell_digits(line)
 
         # print("Processing line: " + line)
