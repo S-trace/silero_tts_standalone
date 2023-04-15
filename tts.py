@@ -337,7 +337,7 @@ def write_wave_chunk(wf, audio, audio_size: int, filename: str, wave_data_limit:
         stats.next_file()
         wave_file_number += 1
         audio_size = wave_header_size + next_chunk_size
-        wf = init_wave_file(F'{filename}_{wave_file_number}.wav',
+        wf = init_wave_file(F'{filename}_{speaker}_{wave_file_number}.wav',
                             wave_channels, wave_sample_width, sample_rate)
     else:
         audio_size += next_chunk_size
@@ -354,7 +354,7 @@ def process_tts(tts_model: torch.nn.Module, lines: list, output_filename: str, w
     audio_size: int = wave_header_size
     wave_file_number: int = 0
     next_chunk_size: int
-    wf = init_wave_file(F'{output_filename}_{wave_file_number}.wav', wave_channels, wave_sample_width, sample_rate)
+    wf = init_wave_file(F'{output_filename}_{speaker}_{wave_file_number}.wav', wave_channels, wave_sample_width, sample_rate)
     for line in lines:
         if line == '\n' or line == '':
             continue
