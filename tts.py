@@ -280,6 +280,7 @@ class Stats:
     processed_text_len: int = 0
     done_percent: float = 0
     start_time: int
+    warmup_seconds: int = 0
     run_time: str = "0:00:00"
     run_time_est: str = "0:00:00"
     wave_data_current: int = 0
@@ -289,8 +290,10 @@ class Stats:
     tts_time: str = "0:00:00"
     tts_time_est: str = "0:00:00"
     tts_time_current: str = "0:00:00"
+    line_number: int = 0
 
     def update(self, line: str, next_chunk_size: int):
+        self.line_number += 1
         self.wave_data_total += next_chunk_size
         self.wave_data_current += next_chunk_size
         self.processed_text_len += len(line)
@@ -300,12 +303,19 @@ class Stats:
         self.wave_mib = int((self.wave_data_total / 1024 / 1024))
         self.wave_mib_est = int(
             (self.wave_data_total / 1024 / 1024 * self.preprocessed_text_len / self.processed_text_len))
+
+        # Don't count first two lines time as pytorch-cuda warmup is very slow
+        if (self.line_number == 3):
+            self.warmup_seconds: int = int(datetime.now().timestamp()) - self.start_time
+            print(F"Warmup took {str(timedelta(seconds=self.warmup_seconds))} seconds")
+
         # Run time estimation
         current_time: int = int(datetime.now().timestamp())
-        run_time_s: int = current_time - self.start_time
+        run_time_s: int = current_time - self.start_time - self.warmup_seconds
         run_time_est_s: int = int(run_time_s * self.preprocessed_text_len / self.processed_text_len)
         self.run_time = str(timedelta(seconds=run_time_s))
         self.run_time_est = str(timedelta(seconds=run_time_est_s))
+
         # TTS time estimation
         tts_time_s: int = int((self.wave_data_total / wave_channels / wave_sample_width / sample_rate))
         tts_time_est_s: int = int((tts_time_s * self.preprocessed_text_len / self.processed_text_len))
