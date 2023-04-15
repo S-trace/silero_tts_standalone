@@ -33,11 +33,11 @@ sample_rate: int = 48000  # Hz - 48000, 24000 or 8000
 torch_device: str = 'auto'  # cpu, cuda or auto
 torch_num_threads: int = 6  # Only effective for torch_device = 'cpu' - use 4-6 threads, larger count may slow down TTS
 line_length_limits: dict = {
-    'aidar': 882,
+    'aidar': 870,
     'baya': 860,
     'eugene': 1000,
-    'kseniya': 895,
-    'xenia': 941,
+    'kseniya': 870,
+    'xenia': 957,
     'random': 355,
 }
 wave_file_size_limit: int = 512 * 1024 * 1024  # 512 MiB - not more than 4GiB!
