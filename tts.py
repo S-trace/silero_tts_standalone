@@ -227,6 +227,10 @@ def download_models_config():
 def init_model(device: str, threads_count: int) -> torch.nn.Module:
     print("Initialising model")
     device: torch.device = torch.device(device)
+
+    # https://github.com/snakers4/silero-models/issues/183
+    torch._C._jit_set_profiling_mode(False) # Fixes initial delay
+
     torch.set_num_threads(threads_count)
     tts_model, tts_sample_text = torch.hub.load(repo_or_dir='snakers4/silero-models',
                                                 model='silero_tts',
