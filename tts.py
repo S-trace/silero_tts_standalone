@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import re
+import timeit
 import torch
-import wave
 import sys
+import wave
 from datetime import datetime, timedelta
 from num2t4ru import num2text
 from omegaconf import OmegaConf
@@ -29,7 +30,7 @@ put_accent: bool = True
 put_yo: bool = True
 speaker: str = 'xenia'
 sample_rate: int = 48000  # Hz - 48000, 24000 or 8000
-torch_device: str = 'cpu'
+torch_device: str = 'auto'  # cpu, cuda or auto
 torch_num_threads: int = 6  # Only effective for torch_device = 'cpu' - use 4-6 threads, larger count may slow down TTS
 line_length_limits: dict = {
     'aidar': 882,
@@ -226,17 +227,38 @@ def download_models_config():
 
 def init_model(device: str, threads_count: int) -> torch.nn.Module:
     print("Initialising model")
-    device: torch.device = torch.device(device)
+    t0 = timeit.default_timer()
 
     # https://github.com/snakers4/silero-models/issues/183
     torch._C._jit_set_profiling_mode(False) # Fixes initial delay
 
+    if not torch.cuda.is_available() and device == "auto":
+        device = 'cpu'
+    if torch.cuda.is_available() and device == "auto" or device == "cuda":
+        # torch.backends.cudnn.deterministic = True
+        torch_dev: torch.device = torch.device("cuda", 0)
+        gpus_count = torch.cuda.device_count()  # 1
+        print("Using {} GPU(s)...".format(gpus_count))
+    else:
+        torch_dev: torch.device = torch.device(device)
     torch.set_num_threads(threads_count)
     tts_model, tts_sample_text = torch.hub.load(repo_or_dir='snakers4/silero-models',
                                                 model='silero_tts',
                                                 language=language,
                                                 speaker=model_id)
-    tts_model.to(device)  # gpu or cpu
+    print("Setup takes {:.2f}".format(timeit.default_timer() - t0))
+
+    print("Loading model")
+    t1 = timeit.default_timer()
+    tts_model.to(torch_dev)  # gpu or cpu
+    print("Model to device takes {:.2f}".format(timeit.default_timer() - t1))
+
+    if torch.cuda.is_available() and device == "auto" or device == "cuda":
+        print("Synchronizing CUDA")
+        t2 = timeit.default_timer()
+        torch.cuda.synchronize()
+        print("Cuda Synch takes {:.2f}".format(timeit.default_timer() - t2))
+    print("Model is loaded")
     return tts_model
 
 
