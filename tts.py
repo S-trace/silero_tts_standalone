@@ -143,7 +143,7 @@ def spell_digits(line) -> str:
     # Sort digits from largest to smallest - else "1 11" will be "один один один" but not "один одиннадцать"
     digits = sorted(digits, key=len, reverse=True)
     for digit in digits:
-        line = line.replace(digit, num2text(int(digit)))
+        line = line.replace(digit, num2text(int(digit[:12])))
     return line
 
 
