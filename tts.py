@@ -166,6 +166,12 @@ def preprocess_text(lines: list, length_limit: int) -> (list, int):
         # Replace chars not supported by model
         line = line.replace("…", "...")  # Model does not handle "…"
         line = line.replace("*", " звёздочка ")
+        line = re.sub(r'(\d+)[\.|,](\d+)', r'\1 и \2', line) # to make more clear stuff like 2.75%
+        line = line.replace("%", " процентов ")
+        line = line.replace(" г.", " году")
+        line = line.replace(" гг.", " годах")
+        line = re.sub("д.\s*н.\s*э.", " до нашей эры", line)
+        line = re.sub("н.\s*э.", " нашей эры", line)
         line = spell_digits(line)
 
         # print("Processing line: " + line)
