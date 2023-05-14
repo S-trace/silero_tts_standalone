@@ -3,7 +3,7 @@ silero_tts_standalone is a simple script which can be used to TTS large text wit
 
 By default, script is configured for Russian texts, but it can be reconfigured for any language supported by Silero models.
 
-In order to work with non-Russian texts you should comment out spell_digits() function and its call in preprocess_text(), or (better) rewrite it with a module supporting your language.
+In order to work with non-Russian texts you should comment out spell_digits() function and its call in preprocess_text(), or (better) rewrite it with a module supporting your language. You also should translate replacement strings in preprocess_text() according to your text language.
 
 The script was created to operate with large texts (over 1 MiB) but can handle small texts too.
 
