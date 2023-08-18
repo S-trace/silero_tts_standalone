@@ -24,7 +24,7 @@ from num2t4ru import num2text
 from omegaconf import OmegaConf
 
 # Configurable parameters:
-model_id: str = 'v3_1_ru'
+model_id: str = 'v4_ru'
 language: str = 'ru'
 put_accent: bool = True
 put_yo: bool = True
